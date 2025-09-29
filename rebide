@@ -1,0 +1,119 @@
+#!/bin/bash
+
+# Rails Development Environment Setup Script
+# Sets up tmux, docker services, Sublime Text, and Chrome with custom profile
+# Generic version for any Rails project
+
+set -e
+
+# Get project name from current directory
+PROJECT_NAME=$(basename "$PWD")
+
+echo "🚀 Starting $PROJECT_NAME development environment..."
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Check required commands
+echo "📋 Checking dependencies..."
+for cmd in tmux docker subl google-chrome; do
+    if ! command_exists "$cmd"; then
+        echo "❌ Error: $cmd is not installed or not in PATH"
+        echo "Please install $cmd and try again"
+        exit 1
+    fi
+done
+
+# Read Chrome profile from .chrome-profile file
+CHROME_PROFILE_FILE="$PWD/.chrome-profile"
+if [ -f "$CHROME_PROFILE_FILE" ]; then
+    CHROME_PROFILE=$(cat "$CHROME_PROFILE_FILE" | tr -d '\n\r')
+    echo "📁 Using Chrome profile: $CHROME_PROFILE"
+else
+    CHROME_PROFILE="Default"
+    echo "📁 No .chrome-profile file found, using default profile"
+    echo "💡 Create a .chrome-profile file with your desired profile name (e.g., 'Profile 1')"
+fi
+
+# Start Docker services
+echo "🐳 Starting Docker services (database and Redis)..."
+docker compose up -d
+
+# Wait a moment for services to be ready
+echo "⏳ Waiting for services to start..."
+sleep 3
+
+# Kill existing tmux session if it exists
+if tmux has-session -t "$PROJECT_NAME" 2>/dev/null; then
+    echo "🔄 Killing existing tmux session '$PROJECT_NAME'..."
+    tmux kill-session -t "$PROJECT_NAME"
+fi
+
+# Create new tmux session
+echo "📺 Creating tmux session '$PROJECT_NAME'..."
+tmux new-session -d -s "$PROJECT_NAME" -n main
+
+# Split the window into 3 panes
+# Pane 0: claude (top left)
+# Pane 1: bash (top right)
+# Pane 2: bin/dev (bottom full width)
+
+# Create vertical split (top and bottom)
+tmux split-window -v -t "$PROJECT_NAME":main
+
+# Split the top pane horizontally (left and right)
+tmux split-window -h -t "$PROJECT_NAME":main.0
+
+# Now we have 3 panes:
+# Pane 0 (top left): will run claude
+# Pane 1 (top right): bash console
+# Pane 2 (bottom): will run bin/dev
+
+# Configure panes
+echo "⚙️  Configuring tmux panes..."
+
+# Pane 0: Run claude (top left)
+tmux send-keys -t "$PROJECT_NAME":main.0 'echo "Starting Claude Code..."' Enter
+tmux send-keys -t "$PROJECT_NAME":main.0 'claude' Enter
+
+# Pane 1: Regular bash console (top right)
+tmux send-keys -t "$PROJECT_NAME":main.1 'echo "Ready for commands..."' Enter
+tmux send-keys -t "$PROJECT_NAME":main.1 'clear' Enter
+
+# Pane 2: Run bin/dev (bottom)
+tmux send-keys -t "$PROJECT_NAME":main.2 'echo "Starting Rails development server..."' Enter
+tmux send-keys -t "$PROJECT_NAME":main.2 'bin/dev' Enter
+
+# Start Sublime Text
+echo "📝 Opening Sublime Text..."
+subl "$PWD" &
+
+# Start Chrome with custom profile
+echo "🌐 Opening Chrome with profile: $CHROME_PROFILE..."
+google-chrome \
+    --profile-directory="$CHROME_PROFILE" \
+    --new-window \
+    --no-first-run \
+    --no-default-browser-check \
+    "http://localhost:3000" &
+
+# Wait a moment for applications to start
+sleep 2
+
+# Attach to tmux session
+echo "✅ Environment ready! Attaching to tmux session..."
+echo ""
+echo "Tmux panes:"
+echo "  - Top left: Claude Code"
+echo "  - Top right: Bash console"
+echo "  - Bottom: Rails development server (bin/dev)"
+echo ""
+echo "Chrome profile: $CHROME_PROFILE"
+echo ""
+echo "To detach from tmux: Ctrl+B, then D"
+echo "To reattach later: tmux attach -t $PROJECT_NAME"
+echo ""
+
+tmux attach -t "$PROJECT_NAME"
