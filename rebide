@@ -37,9 +37,23 @@ else
     echo "💡 Create a .chrome-profile file with your desired profile name (e.g., 'Profile 1')"
 fi
 
-# Start Docker services
-echo "🐳 Starting Docker services (database and Redis)..."
-docker compose up -d
+# Find docker-compose.yml (check current folder, then parent folder)
+DOCKER_COMPOSE_DIR=""
+if [ -f "$PWD/docker-compose.yml" ]; then
+    DOCKER_COMPOSE_DIR="$PWD"
+    echo "🐳 Found docker-compose.yml in current directory"
+elif [ -f "$PWD/../docker-compose.yml" ]; then
+    DOCKER_COMPOSE_DIR="$PWD/.."
+    echo "🐳 Found docker-compose.yml in parent directory"
+else
+    echo "⚠️  No docker-compose.yml found, skipping Docker services"
+fi
+
+# Start Docker services if docker-compose.yml was found
+if [ -n "$DOCKER_COMPOSE_DIR" ]; then
+    echo "🐳 Starting Docker services (database and Redis)..."
+    docker compose -f "$DOCKER_COMPOSE_DIR/docker-compose.yml" up -d
+fi
 
 # Wait a moment for services to be ready
 echo "⏳ Waiting for services to start..."
