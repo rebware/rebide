@@ -26,15 +26,25 @@ for cmd in tmux docker subl google-chrome; do
     fi
 done
 
-# Read Chrome profile from .chrome-profile file
+# Read Chrome profile and URL from .chrome-profile file
 CHROME_PROFILE_FILE="$PWD/.chrome-profile"
 CHROME_PROFILE=""
+CHROME_URL="http://localhost:3000"
 if [ -f "$CHROME_PROFILE_FILE" ]; then
-    CHROME_PROFILE=$(cat "$CHROME_PROFILE_FILE" | tr -d '\n\r')
+    CHROME_PROFILE=$(head -n 1 "$CHROME_PROFILE_FILE" | tr -d '\n\r')
     echo "📁 Using Chrome profile: $CHROME_PROFILE"
+
+    # Check if there's a second line for URL
+    if [ $(wc -l < "$CHROME_PROFILE_FILE") -ge 2 ]; then
+        CHROME_URL=$(sed -n '2p' "$CHROME_PROFILE_FILE" | tr -d '\n\r')
+        echo "🌐 Using custom URL: $CHROME_URL"
+    else
+        echo "🌐 Using default URL: $CHROME_URL"
+    fi
 else
     echo "📁 No .chrome-profile file found, skipping Chrome"
     echo "💡 Create a .chrome-profile file with your desired profile name (e.g., 'Profile 1')"
+    echo "💡 Optionally add a second line with a custom URL (defaults to http://localhost:3000)"
 fi
 
 # Find docker-compose.yml (check current folder, then parent folder)
@@ -106,13 +116,13 @@ subl "$PWD" &
 
 # Start Chrome with custom profile (only if .chrome-profile exists)
 if [ -n "$CHROME_PROFILE" ]; then
-    echo "🌐 Opening Chrome with profile: $CHROME_PROFILE..."
+    echo "🌐 Opening Chrome with profile: $CHROME_PROFILE at $CHROME_URL..."
     google-chrome \
         --profile-directory="$CHROME_PROFILE" \
         --new-window \
         --no-first-run \
         --no-default-browser-check \
-        "http://localhost:3000" &
+        "$CHROME_URL" &
 fi
 
 # Wait a moment for applications to start
