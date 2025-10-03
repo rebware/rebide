@@ -6,6 +6,17 @@
 
 set -e
 
+# Function to find docker-compose.yml location
+find_docker_compose() {
+    if [ -f "$PWD/docker-compose.yml" ]; then
+        echo "$PWD"
+    elif [ -f "$PWD/../docker-compose.yml" ]; then
+        echo "$PWD/.."
+    else
+        echo ""
+    fi
+}
+
 # Handle --list-profiles flag
 if [ "$1" = "--list-profiles" ]; then
     echo "📋 Available Chrome profiles:"
@@ -44,13 +55,8 @@ if [ "$1" = "--close" ]; then
     PROJECT_NAME=$(basename "$PWD")
     echo "🛑 Closing $PROJECT_NAME development environment..."
 
-    # Find docker-compose.yml (check current folder, then parent folder)
-    DOCKER_COMPOSE_DIR=""
-    if [ -f "$PWD/docker-compose.yml" ]; then
-        DOCKER_COMPOSE_DIR="$PWD"
-    elif [ -f "$PWD/../docker-compose.yml" ]; then
-        DOCKER_COMPOSE_DIR="$PWD/.."
-    fi
+    # Find docker-compose.yml
+    DOCKER_COMPOSE_DIR=$(find_docker_compose)
 
     # Stop Docker services if docker-compose.yml was found
     if [ -n "$DOCKER_COMPOSE_DIR" ]; then
@@ -114,14 +120,12 @@ else
 fi
 
 # Find docker-compose.yml (check current folder, then parent folder)
-DOCKER_COMPOSE_DIR=""
-if [ -f "$PWD/docker-compose.yml" ]; then
-    DOCKER_COMPOSE_DIR="$PWD"
+DOCKER_COMPOSE_DIR=$(find_docker_compose)
+if [ "$DOCKER_COMPOSE_DIR" = "$PWD" ]; then
     echo "🐳 Found docker-compose.yml in current directory"
-elif [ -f "$PWD/../docker-compose.yml" ]; then
-    DOCKER_COMPOSE_DIR="$PWD/.."
+elif [ "$DOCKER_COMPOSE_DIR" = "$PWD/.." ]; then
     echo "🐳 Found docker-compose.yml in parent directory"
-else
+elif [ -z "$DOCKER_COMPOSE_DIR" ]; then
     echo "⚠️  No docker-compose.yml found, skipping Docker services"
 fi
 
