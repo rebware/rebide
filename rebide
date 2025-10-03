@@ -39,6 +39,39 @@ if [ "$1" = "--list-profiles" ]; then
     exit 0
 fi
 
+# Handle --close flag
+if [ "$1" = "--close" ]; then
+    PROJECT_NAME=$(basename "$PWD")
+    echo "🛑 Closing $PROJECT_NAME development environment..."
+
+    # Find docker-compose.yml (check current folder, then parent folder)
+    DOCKER_COMPOSE_DIR=""
+    if [ -f "$PWD/docker-compose.yml" ]; then
+        DOCKER_COMPOSE_DIR="$PWD"
+    elif [ -f "$PWD/../docker-compose.yml" ]; then
+        DOCKER_COMPOSE_DIR="$PWD/.."
+    fi
+
+    # Stop Docker services if docker-compose.yml was found
+    if [ -n "$DOCKER_COMPOSE_DIR" ]; then
+        echo "🐳 Stopping Docker services..."
+        docker compose -f "$DOCKER_COMPOSE_DIR/docker-compose.yml" down
+    else
+        echo "⚠️  No docker-compose.yml found, skipping Docker shutdown"
+    fi
+
+    # Kill tmux session if it exists
+    if tmux has-session -t "$PROJECT_NAME" 2>/dev/null; then
+        echo "📺 Killing tmux session '$PROJECT_NAME'..."
+        tmux kill-session -t "$PROJECT_NAME"
+    else
+        echo "⚠️  No tmux session '$PROJECT_NAME' found"
+    fi
+
+    echo "✅ Environment closed!"
+    exit 0
+fi
+
 # Get project name from current directory
 PROJECT_NAME=$(basename "$PWD")
 
