@@ -50,6 +50,17 @@ if [ "$1" = "--list-profiles" ]; then
     exit 0
 fi
 
+# Parse flags
+SKIP_DOCKER=false
+for arg in "$@"; do
+    case $arg in
+        --skip-docker)
+            SKIP_DOCKER=true
+            shift
+            ;;
+    esac
+done
+
 # Handle --close flag
 if [ "$1" = "--close" ]; then
     PROJECT_NAME=$(basename "$PWD")
@@ -58,10 +69,12 @@ if [ "$1" = "--close" ]; then
     # Find docker-compose.yml
     DOCKER_COMPOSE_DIR=$(find_docker_compose)
 
-    # Stop Docker services if docker-compose.yml was found
-    if [ -n "$DOCKER_COMPOSE_DIR" ]; then
+    # Stop Docker services if docker-compose.yml was found and --skip-docker not set
+    if [ "$SKIP_DOCKER" = false ] && [ -n "$DOCKER_COMPOSE_DIR" ]; then
         echo "🐳 Stopping Docker services..."
         docker compose -f "$DOCKER_COMPOSE_DIR/docker-compose.yml" down
+    elif [ "$SKIP_DOCKER" = true ]; then
+        echo "⏭️  Skipping Docker shutdown (--skip-docker flag set)"
     else
         echo "⚠️  No docker-compose.yml found, skipping Docker shutdown"
     fi
@@ -129,10 +142,12 @@ elif [ -z "$DOCKER_COMPOSE_DIR" ]; then
     echo "⚠️  No docker-compose.yml found, skipping Docker services"
 fi
 
-# Start Docker services if docker-compose.yml was found
-if [ -n "$DOCKER_COMPOSE_DIR" ]; then
+# Start Docker services if docker-compose.yml was found and --skip-docker not set
+if [ "$SKIP_DOCKER" = false ] && [ -n "$DOCKER_COMPOSE_DIR" ]; then
     echo "🐳 Starting Docker services (database and Redis)..."
     docker compose -f "$DOCKER_COMPOSE_DIR/docker-compose.yml" up -d
+elif [ "$SKIP_DOCKER" = true ]; then
+    echo "⏭️  Skipping Docker services (--skip-docker flag set)"
 fi
 
 # Wait a moment for services to be ready
