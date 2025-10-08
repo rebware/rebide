@@ -1,4 +1,9 @@
-# rebide
+```
+ ▄▄▄ ▗▞▀▚▖▗▖   ▗▄▄▄▖▗▄▄▄  ▗▄▄▄▖
+█    ▐▛▀▀▘▐▌     █  ▐▌  █ ▐▌   
+█    ▝▚▄▄▖▐▛▀▚▖  █  ▐▌  █ ▐▛▀▀▘
+          ▐▙▄▞▘▗▄█▄▖▐▙▄▄▀ ▐▙▄▄▖
+```
 
 Rails Development Environment Setup Script
 
@@ -35,9 +40,21 @@ Create a `.chrome-profile` file in your Rails project with your desired Chrome p
 echo "Profile 1" > .chrome-profile
 ```
 
+Optionally, add a second line to specify a custom URL (defaults to `http://localhost:3000`):
+```bash
+cat > .chrome-profile << EOF
+Profile 1
+http://localhost:3001
+EOF
+```
+
 ## Requirements
 
 - tmux
 - docker (with compose)
 - subl (Sublime Text)
 - google-chrome
+
+---
+
+Rebware © 2025
