@@ -94,6 +94,14 @@ fi
 # Get project name from current directory
 PROJECT_NAME=$(basename "$PWD")
 
+# Display banner
+echo ""
+echo " ▄▄▄ ▗▞▀▚▖▗▖   ▗▄▄▄▖▗▄▄▄  ▗▄▄▄▖"
+echo "█    ▐▛▀▀▘▐▌     █  ▐▌  █ ▐▌   "
+echo "█    ▝▚▄▄▖▐▛▀▚▖  █  ▐▌  █ ▐▛▀▀▘"
+echo "          ▐▙▄▞▘▗▄█▄▖▐▙▄▄▀ ▐▙▄▄▖"
+echo ""
+
 echo "🚀 Starting $PROJECT_NAME development environment..."
 
 # Function to check if command exists
