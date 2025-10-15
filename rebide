@@ -214,7 +214,7 @@ tmux send-keys -t "$PROJECT_NAME":main.1 'clear' Enter
 
 # Pane 2: Run bin/dev (bottom) with PORT environment variable
 tmux send-keys -t "$PROJECT_NAME":main.2 'echo "Starting Rails development server..."' Enter
-tmux send-keys -t "$PROJECT_NAME":main.2 "PORT=$RAILS_PORT bin/dev" Enter
+tmux send-keys -t "$PROJECT_NAME":main.2 "RAILS_PORT=$RAILS_PORT bin/dev" Enter
 
 # Start Sublime Text
 echo "📝 Opening Sublime Text..."
