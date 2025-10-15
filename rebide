@@ -3,6 +3,11 @@
 # Rails Development Environment Setup Script
 # Sets up tmux, docker services, Sublime Text, and Chrome with custom profile
 # Generic version for any Rails project
+#
+# Configuration: Create a .rebide.conf file in your project root with:
+#   CHROME_PROFILE="Profile 1"    # Chrome profile to use (optional)
+#   RAILS_PORT="3000"              # Rails server port (default: 3000)
+#   CHROME_URL=""                  # Custom URL (default: http://localhost:$RAILS_PORT)
 
 set -e
 
@@ -119,25 +124,33 @@ for cmd in tmux docker subl google-chrome; do
     fi
 done
 
-# Read Chrome profile and URL from .chrome-profile file
-CHROME_PROFILE_FILE="$PWD/.chrome-profile"
+# Set defaults
 CHROME_PROFILE=""
-CHROME_URL="http://localhost:3000"
-if [ -f "$CHROME_PROFILE_FILE" ]; then
-    CHROME_PROFILE=$(head -n 1 "$CHROME_PROFILE_FILE" | tr -d '\n\r')
-    echo "📁 Using Chrome profile: $CHROME_PROFILE"
+RAILS_PORT="3000"
+CHROME_URL=""
 
-    # Check if there's a second line for URL
-    if [ $(wc -l < "$CHROME_PROFILE_FILE") -ge 2 ]; then
-        CHROME_URL=$(sed -n '2p' "$CHROME_PROFILE_FILE" | tr -d '\n\r')
-        echo "🌐 Using custom URL: $CHROME_URL"
-    else
-        echo "🌐 Using default URL: $CHROME_URL"
-    fi
+# Read configuration from .rebide.conf file
+REBIDE_CONF="$PWD/.rebide.conf"
+if [ -f "$REBIDE_CONF" ]; then
+    echo "⚙️  Loading configuration from .rebide.conf..."
+    source "$REBIDE_CONF"
 else
-    echo "📁 No .chrome-profile file found, skipping Chrome"
-    echo "💡 Create a .chrome-profile file with your desired profile name (e.g., 'Profile 1')"
-    echo "💡 Optionally add a second line with a custom URL (defaults to http://localhost:3000)"
+    echo "⚙️  No .rebide.conf found, using defaults"
+    echo "💡 Create a .rebide.conf file to customize settings"
+fi
+
+# Set CHROME_URL default if not specified in config
+if [ -z "$CHROME_URL" ]; then
+    CHROME_URL="http://localhost:$RAILS_PORT"
+fi
+
+# Display configuration
+echo "🔌 Rails port: $RAILS_PORT"
+if [ -n "$CHROME_PROFILE" ]; then
+    echo "📁 Chrome profile: $CHROME_PROFILE"
+    echo "🌐 Chrome URL: $CHROME_URL"
+else
+    echo "📁 Chrome: disabled (no CHROME_PROFILE set)"
 fi
 
 # Find docker-compose.yml (check current folder, then parent folder)
@@ -199,9 +212,9 @@ tmux send-keys -t "$PROJECT_NAME":main.0 'claude' Enter
 tmux send-keys -t "$PROJECT_NAME":main.1 'echo "Ready for commands..."' Enter
 tmux send-keys -t "$PROJECT_NAME":main.1 'clear' Enter
 
-# Pane 2: Run bin/dev (bottom)
+# Pane 2: Run bin/dev (bottom) with PORT environment variable
 tmux send-keys -t "$PROJECT_NAME":main.2 'echo "Starting Rails development server..."' Enter
-tmux send-keys -t "$PROJECT_NAME":main.2 'bin/dev' Enter
+tmux send-keys -t "$PROJECT_NAME":main.2 "PORT=$RAILS_PORT bin/dev" Enter
 
 # Start Sublime Text
 echo "📝 Opening Sublime Text..."

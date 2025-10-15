@@ -33,19 +33,41 @@ Run from any Rails project directory to start a complete development environment
 ```
 Stops Docker services and kills the tmux session.
 
-## Optional Configuration
+## Configuration
 
-Create a `.chrome-profile` file in your Rails project with your desired Chrome profile name:
+Create a `.rebide.conf` file in your Rails project root to customize settings:
+
 ```bash
-echo "Profile 1" > .chrome-profile
+# .rebide.conf
+
+# Chrome profile to use (run ./rebide --list-profiles to see available profiles)
+CHROME_PROFILE="Profile 1"
+
+# Rails server port (passed as PORT environment variable to bin/dev)
+RAILS_PORT="3000"
+
+# Custom Chrome URL (optional, defaults to http://localhost:$RAILS_PORT)
+# CHROME_URL="http://custom-domain.test"
 ```
 
-Optionally, add a second line to specify a custom URL (defaults to `http://localhost:3000`):
+**Example configurations:**
+
+Default setup (port 3000):
 ```bash
-cat > .chrome-profile << EOF
-Profile 1
-http://localhost:3001
+echo 'CHROME_PROFILE="Profile 1"' > .rebide.conf
+```
+
+Custom port:
+```bash
+cat > .rebide.conf << EOF
+CHROME_PROFILE="Profile 1"
+RAILS_PORT="3001"
 EOF
+```
+
+Without Chrome:
+```bash
+echo 'RAILS_PORT="3000"' > .rebide.conf
 ```
 
 ## Requirements
