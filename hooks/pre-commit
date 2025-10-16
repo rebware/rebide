@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Pre-commit hook to automatically update VERSION and VERSION_DATE in rebide script
+# when the rebide file is being committed
+#
+# Version bump behavior:
+# - Default: Bumps minor version (e.g., 1.0 -> 1.1)
+# - Add [major] to commit message: Bumps major version (e.g., 1.0 -> 2.0)
+
+# Check if rebide file is being committed
+if git diff --cached --name-only | grep -q "^rebide$"; then
+    echo "📅 Processing version update for rebide script..."
+
+    # Get current date in YYYY-MM-DD format
+    CURRENT_DATE=$(date +%Y-%m-%d)
+
+    # Read the commit message from git (if available)
+    # For initial commit or when commit message isn't available yet, we'll check after
+    COMMIT_MSG_FILE=".git/COMMIT_EDITMSG"
+
+    # Extract current version from rebide
+    CURRENT_VERSION=$(grep '^VERSION=' rebide | cut -d'"' -f2)
+    MAJOR=$(echo "$CURRENT_VERSION" | cut -d'.' -f1)
+    MINOR=$(echo "$CURRENT_VERSION" | cut -d'.' -f2)
+
+    # Default behavior: bump minor version
+    MINOR=$((MINOR + 1))
+    NEW_VERSION="${MAJOR}.${MINOR}"
+    VERSION_TYPE="MINOR"
+
+    # Check if we should bump major version instead
+    if [ -f "$COMMIT_MSG_FILE" ]; then
+        COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+        if echo "$COMMIT_MSG" | grep -qi "\[major\]"; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            NEW_VERSION="${MAJOR}.${MINOR}"
+            VERSION_TYPE="MAJOR"
+        fi
+    fi
+
+    # Display version bump
+    if [ "$VERSION_TYPE" = "MAJOR" ]; then
+        echo "🚀 Bumping MAJOR version: $CURRENT_VERSION -> $NEW_VERSION"
+    else
+        echo "📈 Bumping MINOR version: $CURRENT_VERSION -> $NEW_VERSION"
+    fi
+
+    # Update VERSION_DATE (always)
+    sed -i "s/^VERSION_DATE=\".*\"$/VERSION_DATE=\"$CURRENT_DATE\"/" rebide
+
+    # Update VERSION (always)
+    sed -i "s/^VERSION=\".*\"$/VERSION=\"$NEW_VERSION\"/" rebide
+
+    # Add the updated file to staging
+    git add rebide
+
+    echo "✅ Version updated to $NEW_VERSION ($CURRENT_DATE)"
+fi
+
+exit 0

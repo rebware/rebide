@@ -33,6 +33,45 @@ Run from any Rails project directory to start a complete development environment
 ```
 Stops Docker services and kills the tmux session.
 
+**Show version:**
+```bash
+./rebide --version
+```
+Displays the current version and release date.
+
+## Version Management (for contributors)
+
+The `rebide` script uses a `major.minor` version format (e.g., `1.0`, `1.1`, `2.0`). Version management is automated through a git pre-commit hook.
+
+### Setup
+
+Install the git hooks:
+
+```bash
+./install-hooks.sh
+```
+
+### Automatic Version Updates
+
+When you commit changes to the `rebide` script:
+
+- **Default behavior**: Automatically bumps the minor version (e.g., `1.0` → `1.1`) and updates the date
+- **Major version bump**: Add `[major]` to your commit message to bump the major version (e.g., `1.0` → `2.0`, resets minor to 0)
+
+### Commit Examples
+
+**Regular commit (minor version bump):**
+```bash
+git commit -m "Add support for custom ports"
+# Result: Version 1.0 → 1.1, date updated
+```
+
+**Major version bump:**
+```bash
+git commit -m "[major] Complete rewrite of tmux layout"
+# Result: Version 1.0 → 2.0, date updated
+```
+
 ## Configuration
 
 Create a `.rebide.conf` file in your Rails project root to customize settings:

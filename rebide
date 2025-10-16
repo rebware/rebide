@@ -9,6 +9,10 @@
 #   RAILS_PORT="3000"              # Rails server port (default: 3000)
 #   CHROME_URL=""                  # Custom URL (default: http://localhost:$RAILS_PORT)
 
+# Version information (date updated automatically by pre-commit hook)
+VERSION="1.1"
+VERSION_DATE="2025-10-16"
+
 set -e
 
 # Function to find docker-compose.yml location
@@ -21,6 +25,12 @@ find_docker_compose() {
         echo ""
     fi
 }
+
+# Handle --version flag
+if [ "$1" = "--version" ]; then
+    echo "rebide version $VERSION ($VERSION_DATE)"
+    exit 0
+fi
 
 # Handle --list-profiles flag
 if [ "$1" = "--list-profiles" ]; then
