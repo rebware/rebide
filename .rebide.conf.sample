@@ -1,0 +1,24 @@
+# rebide Configuration File Sample
+# Copy this file to .rebide.conf in your Rails project root and customize as needed
+
+# Chrome profile to use when launching Chrome
+# Chrome integration will be disabled if this is not set
+# Find your profile name in chrome://version/ (look for "Profile Path")
+# Example: "Profile 1", "Default", "Person 1"
+#CHROME_PROFILE="Profile 1"
+
+# Rails server port (default: 3000)
+# The port where your Rails application will run
+#RAILS_PORT="3000"
+
+# Custom URL for Chrome to open (default: http://localhost:$RAILS_PORT)
+# Override this if you need a specific URL or use a custom domain
+#CHROME_URL="http://localhost:3000"
+
+# Command to start the local development server (default: bin/dev)
+# Common alternatives: "bin/rails server", "bundle exec rails server", "foreman start"
+#RUN_INIT="bin/dev"
+
+# Docker compose file name (default: docker-compose.yml)
+# Change this if your project uses a different compose file name
+#DOCKER_COMPOSE_FILE="docker-compose.yml"
