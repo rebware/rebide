@@ -87,6 +87,9 @@ RAILS_PORT="3000"
 
 # Custom Chrome URL (optional, defaults to http://localhost:$RAILS_PORT)
 # CHROME_URL="http://custom-domain.test"
+
+# Docker compose file name (optional, defaults to docker-compose.yml)
+DOCKER_COMPOSE_FILE="docker-compose.yml"
 ```
 
 **Example configurations:**

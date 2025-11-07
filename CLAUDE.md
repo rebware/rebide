@@ -35,12 +35,14 @@ Create a `.rebide.conf` file in your Rails project root to customize the develop
 - **RAILS_PORT**: Rails server port (default: 3000)
 - **CHROME_URL**: Custom URL for Chrome (default: http://localhost:$RAILS_PORT)
 - **RUN_INIT**: Command to start the local server (default: bin/dev)
+- **DOCKER_COMPOSE_FILE**: Docker compose file name (default: docker-compose.yml)
 
 Example `.rebide.conf`:
 ```bash
 CHROME_PROFILE="Profile 1"
 RAILS_PORT="3000"
 RUN_INIT="bin/dev"
+DOCKER_COMPOSE_FILE="docker-compose.yml"
 ```
 
 ### Tmux Management
@@ -59,6 +61,6 @@ Required system tools:
 ## Rails Project Assumptions
 
 The script assumes the target Rails project has:
-- A `docker-compose.yml` file for database and Redis services
+- A Docker compose file for database and Redis services (defaults to `docker-compose.yml`, configurable via DOCKER_COMPOSE_FILE)
 - A command to start the development server (defaults to `bin/dev`, configurable via RUN_INIT)
 - Standard Rails project structure at localhost:3000 (port configurable via RAILS_PORT)
