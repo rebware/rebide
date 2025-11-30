@@ -78,6 +78,46 @@ for arg in "$@"; do
     esac
 done
 
+# Handle serve command (Docker + init command only, no tmux/sublime/chrome)
+if [ "$1" = "serve" ]; then
+    PROJECT_NAME=$(basename "$PWD")
+    echo "🚀 Starting $PROJECT_NAME server..."
+
+    # Set defaults
+    RUN_INIT="bin/dev"
+    RAILS_PORT="3000"
+    DOCKER_COMPOSE_FILE="docker-compose.yml"
+
+    # Load configuration
+    REBIDE_CONF="$PWD/.rebide.conf"
+    if [ -f "$REBIDE_CONF" ]; then
+        echo "⚙️  Loading configuration from .rebide.conf..."
+        source "$REBIDE_CONF"
+    fi
+
+    # Start Docker services if configured
+    if [ "$SKIP_DOCKER" = false ] && [ -n "$DOCKER_COMPOSE_FILE" ]; then
+        DOCKER_COMPOSE_DIR=$(find_docker_compose)
+
+        if [ -n "$DOCKER_COMPOSE_DIR" ]; then
+            echo "🐳 Starting Docker services..."
+            docker compose -f "$DOCKER_COMPOSE_DIR/$DOCKER_COMPOSE_FILE" up -d
+            echo "⏳ Waiting for services to start..."
+            sleep 3
+        else
+            echo "⚠️  No $DOCKER_COMPOSE_FILE found, skipping Docker services"
+        fi
+    elif [ "$SKIP_DOCKER" = true ]; then
+        echo "⏭️  Skipping Docker services (--skip-docker flag set)"
+    elif [ -z "$DOCKER_COMPOSE_FILE" ]; then
+        echo "⏭️  Skipping Docker services (DOCKER_COMPOSE_FILE is empty)"
+    fi
+
+    # Run the init command directly
+    echo "🚀 Running $RUN_INIT..."
+    RAILS_PORT=$RAILS_PORT exec $RUN_INIT
+fi
+
 # Handle close command
 if [ "$1" = "close" ]; then
     PROJECT_NAME=$(basename "$PWD")
