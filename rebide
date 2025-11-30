@@ -78,8 +78,8 @@ for arg in "$@"; do
     esac
 done
 
-# Handle --close flag
-if [ "$1" = "--close" ]; then
+# Handle close command
+if [ "$1" = "close" ]; then
     PROJECT_NAME=$(basename "$PWD")
     echo "🛑 Closing $PROJECT_NAME development environment..."
 
