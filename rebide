@@ -34,6 +34,41 @@ if [ "$1" = "--version" ]; then
     exit 0
 fi
 
+# Handle help command
+if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "rebide - Rails Development Environment Setup Script"
+    echo ""
+    echo "Usage: rebide [command] [options]"
+    echo ""
+    echo "Commands:"
+    echo "  (none)            Start full development environment (tmux, Docker, Sublime, Chrome)"
+    echo "  serve             Start Docker and run server only (no tmux/Sublime/Chrome)"
+    echo "  close             Stop Docker services and kill tmux session"
+    echo "  help              Show this help message"
+    echo ""
+    echo "Options:"
+    echo "  --version         Show version information"
+    echo "  --list-profiles   List available Chrome profiles"
+    echo "  --skip-docker     Skip Docker services startup/shutdown"
+    echo ""
+    echo "Configuration:"
+    echo "  Create a .rebide.conf file in your project root with:"
+    echo ""
+    echo "    CHROME_PROFILE=\"Profile 1\"              # Chrome profile (optional, disables Chrome if not set)"
+    echo "    RAILS_PORT=\"3000\"                       # Rails server port (default: 3000)"
+    echo "    CHROME_URL=\"http://localhost:3000\"     # Custom URL (default: http://localhost:\$RAILS_PORT)"
+    echo "    RUN_INIT=\"bin/dev\"                      # Server start command (default: bin/dev)"
+    echo "    DOCKER_COMPOSE_FILE=\"docker-compose.yml\" # Docker compose file (default: docker-compose.yml)"
+    echo ""
+    echo "Examples:"
+    echo "  rebide                    # Start full environment"
+    echo "  rebide serve              # Start server only"
+    echo "  rebide close              # Stop environment"
+    echo "  rebide --skip-docker      # Start without Docker"
+    echo "  rebide serve --skip-docker # Start server without Docker"
+    exit 0
+fi
+
 # Handle --list-profiles flag
 if [ "$1" = "--list-profiles" ]; then
     echo "📋 Available Chrome profiles:"
