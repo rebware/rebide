@@ -12,8 +12,8 @@
 #   DOCKER_COMPOSE_FILE="docker-compose.yml"  # Docker compose file (default: docker-compose.yml)
 
 # Version information (date updated automatically by pre-commit hook)
-VERSION="1.1"
-VERSION_DATE="2025-10-16"
+VERSION="1.2"
+VERSION_DATE="2025-11-30"
 
 set -e
 
@@ -113,14 +113,16 @@ for arg in "$@"; do
     esac
 done
 
-# Handle serve command (Docker + init command only, no tmux/sublime/chrome)
+# Handle serve command (Docker + init command only, no tmux/sublime)
 if [ "$1" = "serve" ]; then
     PROJECT_NAME=$(basename "$PWD")
     echo "🚀 Starting $PROJECT_NAME server..."
 
     # Set defaults
+    CHROME_PROFILE=""
     RUN_INIT="bin/dev"
     RAILS_PORT="3000"
+    CHROME_URL=""
     DOCKER_COMPOSE_FILE="docker-compose.yml"
 
     # Load configuration
@@ -128,6 +130,11 @@ if [ "$1" = "serve" ]; then
     if [ -f "$REBIDE_CONF" ]; then
         echo "⚙️  Loading configuration from .rebide.conf..."
         source "$REBIDE_CONF"
+    fi
+
+    # Set CHROME_URL default if not specified
+    if [ -z "$CHROME_URL" ]; then
+        CHROME_URL="http://localhost:$RAILS_PORT"
     fi
 
     # Start Docker services if configured
@@ -146,6 +153,17 @@ if [ "$1" = "serve" ]; then
         echo "⏭️  Skipping Docker services (--skip-docker flag set)"
     elif [ -z "$DOCKER_COMPOSE_FILE" ]; then
         echo "⏭️  Skipping Docker services (DOCKER_COMPOSE_FILE is empty)"
+    fi
+
+    # Open browser if Chrome profile is configured
+    if [ -n "$CHROME_PROFILE" ]; then
+        echo "🌐 Opening Chrome with profile: $CHROME_PROFILE at $CHROME_URL..."
+        google-chrome \
+            --profile-directory="$CHROME_PROFILE" \
+            --new-window \
+            --no-first-run \
+            --no-default-browser-check \
+            "$CHROME_URL" &
     fi
 
     # Run the init command directly
