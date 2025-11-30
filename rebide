@@ -28,8 +28,8 @@ find_docker_compose() {
     fi
 }
 
-# Handle --version flag
-if [ "$1" = "--version" ]; then
+# Handle version command
+if [ "$1" = "version" ]; then
     echo "rebide version $VERSION ($VERSION_DATE)"
     exit 0
 fi
@@ -44,11 +44,11 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "  (none)            Start full development environment (tmux, Docker, Sublime, Chrome)"
     echo "  serve             Start Docker and run server only (no tmux/Sublime/Chrome)"
     echo "  close             Stop Docker services and kill tmux session"
+    echo "  version           Show version information"
+    echo "  list-profiles     List available Chrome profiles"
     echo "  help              Show this help message"
     echo ""
     echo "Options:"
-    echo "  --version         Show version information"
-    echo "  --list-profiles   List available Chrome profiles"
     echo "  --skip-docker     Skip Docker services startup/shutdown"
     echo ""
     echo "Configuration:"
@@ -69,8 +69,8 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     exit 0
 fi
 
-# Handle --list-profiles flag
-if [ "$1" = "--list-profiles" ]; then
+# Handle list-profiles command
+if [ "$1" = "list-profiles" ]; then
     echo "📋 Available Chrome profiles:"
     echo ""
 
