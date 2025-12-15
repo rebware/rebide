@@ -10,10 +10,22 @@
 #   CHROME_URL=""                  # Custom URL (default: http://localhost:$RAILS_PORT)
 #   RUN_INIT="bin/dev"             # Command to start local server (default: bin/dev)
 #   DOCKER_COMPOSE_FILE="docker-compose.yml"  # Docker compose file (default: docker-compose.yml)
+#
+# Database settings (for dump_db/restore_db commands):
+#   DATABASE="postgres"            # Database type: postgres or sqlite3 (default: postgres)
+#   DATABASE_HOST="127.0.0.1"      # Database host (default: 127.0.0.1)
+#   DATABASE_PORT="5432"           # Database port (default: 5432)
+#   DATABASE_USER="postgres"       # Database user (default: postgres)
+#   DATABASE_PASSWORD=""           # Database password (optional)
+#   DATABASE_DB="myapp_dev"        # Database name or path to sqlite3 file (required)
+#   DUMPS_DIR="~/workspace/dumps"  # Directory for DB dumps (default: ~/workspace/dumps)
+#
+# Environment file settings (for dump_env/restore_env commands):
+#   ENVS_DIR="~/workspace/envs"    # Directory for .env backups (default: ~/workspace/envs)
 
 # Version information (date updated automatically by pre-commit hook)
-VERSION="1.2"
-VERSION_DATE="2025-11-30"
+VERSION="1.3"
+VERSION_DATE="2025-12-15"
 
 set -e
 
@@ -44,6 +56,10 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "  (none)            Start full development environment (tmux, Docker, Sublime, Chrome)"
     echo "  serve             Start Docker and run server only (no tmux/Sublime/Chrome)"
     echo "  close             Stop Docker services and kill tmux session"
+    echo "  dump_db           Dump PostgreSQL database to dumps/ folder"
+    echo "  restore_db [file] Restore PostgreSQL database from dump file"
+    echo "  dump_env          Save .env file to ENVS_DIR"
+    echo "  restore_env [file] Restore .env file from ENVS_DIR"
     echo "  version           Show version information"
     echo "  list-profiles     List available Chrome profiles"
     echo "  help              Show this help message"
@@ -60,12 +76,29 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "    RUN_INIT=\"bin/dev\"                      # Server start command (default: bin/dev)"
     echo "    DOCKER_COMPOSE_FILE=\"docker-compose.yml\" # Docker compose file (default: docker-compose.yml)"
     echo ""
+    echo "  Database settings (for dump_db/restore_db):"
+    echo "    DATABASE=\"postgres\"                     # Database type: postgres or sqlite3 (default: postgres)"
+    echo "    DATABASE_HOST=\"127.0.0.1\"               # Database host (default: 127.0.0.1)"
+    echo "    DATABASE_PORT=\"5432\"                    # Database port (default: 5432)"
+    echo "    DATABASE_USER=\"postgres\"                # Database user (default: postgres)"
+    echo "    DATABASE_PASSWORD=\"\"                    # Database password (optional)"
+    echo "    DATABASE_DB=\"database\"                  # Database name or path to sqlite3 file (required)"
+    echo "    DUMPS_DIR=\"~/workspace/dumps\"           # Directory for DB dumps (default: ~/workspace/dumps)"
+    echo ""
+    echo "  Environment file settings (for dump_env/restore_env):"
+    echo "    ENVS_DIR=\"~/workspace/envs\"             # Directory for .env backups (default: ~/workspace/envs)"
+    echo ""
     echo "Examples:"
     echo "  rebide                    # Start full environment"
     echo "  rebide serve              # Start server only"
     echo "  rebide close              # Stop environment"
     echo "  rebide --skip-docker      # Start without Docker"
     echo "  rebide serve --skip-docker # Start server without Docker"
+    echo "  rebide dump_db            # Dump database to dumps/ folder"
+    echo "  rebide restore_db         # List available dumps and select one"
+    echo "  rebide restore_db dumps/mydb_2025.sql # Restore specific dump"
+    echo "  rebide dump_env           # Save .env to ENVS_DIR"
+    echo "  rebide restore_env        # List available .env backups and select one"
     exit 0
 fi
 
@@ -99,6 +132,363 @@ if [ "$1" = "list-profiles" ]; then
 
     echo ""
     echo "💡 Use these profile directory names (e.g., 'Default', 'Profile 1') in your .chrome-profile file"
+    exit 0
+fi
+
+# Handle dump_db command
+if [ "$1" = "dump_db" ]; then
+    echo "🗄️  Dumping database..."
+
+    # Set database defaults
+    DATABASE="postgres"
+    DATABASE_HOST="127.0.0.1"
+    DATABASE_PORT="5432"
+    DATABASE_USER="postgres"
+    DATABASE_DB=""
+    DUMPS_DIR="$HOME/workspace/dumps"
+
+    # Load configuration
+    REBIDE_CONF="$PWD/.rebide.conf"
+    if [ -f "$REBIDE_CONF" ]; then
+        source "$REBIDE_CONF"
+    else
+        echo "❌ Error: .rebide.conf not found"
+        exit 1
+    fi
+
+    # Validate DATABASE_DB is set
+    if [ -z "$DATABASE_DB" ]; then
+        echo "❌ Error: DATABASE_DB not set in .rebide.conf"
+        exit 1
+    fi
+
+    # Create dumps directory if it doesn't exist
+    mkdir -p "$DUMPS_DIR"
+
+    # Generate dump filename with timestamp
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    if [ "$DATABASE" = "sqlite3" ] || [ "$DATABASE" = "sqlite" ]; then
+        # Use project folder name for sqlite3
+        DB_NAME=$(basename "$PWD")
+    else
+        DB_NAME="$DATABASE_DB"
+    fi
+    DUMP_FILE="$DUMPS_DIR/${DB_NAME}_${TIMESTAMP}.sql"
+
+    echo "📊 Database: $DATABASE_DB"
+    echo "🔧 Type: $DATABASE"
+    echo "📁 Output: $DUMP_FILE"
+
+    if [ "$DATABASE" = "sqlite3" ] || [ "$DATABASE" = "sqlite" ]; then
+        # Validate sqlite3 file exists
+        if [ ! -f "$DATABASE_DB" ]; then
+            echo "❌ Error: SQLite database file not found: $DATABASE_DB"
+            exit 1
+        fi
+
+        # Run sqlite3 dump
+        sqlite3 "$DATABASE_DB" .dump > "$DUMP_FILE"
+    else
+        # PostgreSQL dump
+        echo "🖥️  Host: $DATABASE_HOST:$DATABASE_PORT"
+        echo "👤 User: $DATABASE_USER"
+
+        PGPASSWORD="${DATABASE_PASSWORD:-}" pg_dump \
+            -h "$DATABASE_HOST" \
+            -p "$DATABASE_PORT" \
+            -U "$DATABASE_USER" \
+            -f "$DUMP_FILE" \
+            "$DATABASE_DB"
+    fi
+
+    if [ $? -eq 0 ]; then
+        DUMP_SIZE=$(du -h "$DUMP_FILE" | cut -f1)
+        echo "✅ Database dumped successfully ($DUMP_SIZE)"
+    else
+        echo "❌ Error: Database dump failed"
+        exit 1
+    fi
+    exit 0
+fi
+
+# Handle restore_db command
+if [ "$1" = "restore_db" ]; then
+    echo "🗄️  Restoring database..."
+
+    # Set database defaults
+    DATABASE="postgres"
+    DATABASE_HOST="127.0.0.1"
+    DATABASE_PORT="5432"
+    DATABASE_USER="postgres"
+    DATABASE_DB=""
+    DUMPS_DIR="$HOME/workspace/dumps"
+
+    # Load configuration
+    REBIDE_CONF="$PWD/.rebide.conf"
+    if [ -f "$REBIDE_CONF" ]; then
+        source "$REBIDE_CONF"
+    else
+        echo "❌ Error: .rebide.conf not found"
+        exit 1
+    fi
+
+    # Validate DATABASE_DB is set
+    if [ -z "$DATABASE_DB" ]; then
+        echo "❌ Error: DATABASE_DB not set in .rebide.conf"
+        exit 1
+    fi
+
+    DUMP_FILE="$2"
+
+    # If no file specified, list available dumps and let user choose
+    if [ -z "$DUMP_FILE" ]; then
+        if [ ! -d "$DUMPS_DIR" ] || [ -z "$(ls -A "$DUMPS_DIR" 2>/dev/null)" ]; then
+            echo "❌ Error: No dumps found in $DUMPS_DIR"
+            exit 1
+        fi
+
+        echo "📋 Available dumps:"
+        echo ""
+
+        # List dumps with numbers
+        i=1
+        declare -a DUMPS
+        for dump in "$DUMPS_DIR"/*.sql; do
+            if [ -f "$dump" ]; then
+                DUMP_SIZE=$(du -h "$dump" | cut -f1)
+                DUMP_NAME=$(basename "$dump")
+                echo "  $i) $DUMP_NAME ($DUMP_SIZE)"
+                DUMPS[$i]="$dump"
+                ((i++))
+            fi
+        done
+
+        if [ ${#DUMPS[@]} -eq 0 ]; then
+            echo "❌ Error: No .sql files found in $DUMPS_DIR"
+            exit 1
+        fi
+
+        echo ""
+        read -p "Select dump to restore (1-$((i-1))): " SELECTION
+
+        if [[ ! "$SELECTION" =~ ^[0-9]+$ ]] || [ "$SELECTION" -lt 1 ] || [ "$SELECTION" -ge "$i" ]; then
+            echo "❌ Error: Invalid selection"
+            exit 1
+        fi
+
+        DUMP_FILE="${DUMPS[$SELECTION]}"
+    fi
+
+    # Validate dump file exists
+    if [ ! -f "$DUMP_FILE" ]; then
+        echo "❌ Error: Dump file not found: $DUMP_FILE"
+        exit 1
+    fi
+
+    echo "📊 Database: $DATABASE_DB"
+    echo "🔧 Type: $DATABASE"
+    echo "📁 Restoring from: $DUMP_FILE"
+
+    if [ "$DATABASE" = "sqlite3" ] || [ "$DATABASE" = "sqlite" ]; then
+        echo ""
+        if [ -f "$DATABASE_DB" ]; then
+            echo "⚠️  This will DELETE and recreate the database file '$DATABASE_DB'"
+        else
+            echo "📝 Database file will be created: $DATABASE_DB"
+        fi
+        read -p "Continue? (y/N): " CONFIRM
+
+        if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+            echo "❌ Restore cancelled"
+            exit 1
+        fi
+
+        # Remove existing database file
+        if [ -f "$DATABASE_DB" ]; then
+            echo "🔄 Removing existing database..."
+            rm "$DATABASE_DB"
+        fi
+
+        echo "🔄 Restoring data..."
+        sqlite3 "$DATABASE_DB" < "$DUMP_FILE"
+    else
+        # PostgreSQL restore
+        echo "🖥️  Host: $DATABASE_HOST:$DATABASE_PORT"
+        echo "👤 User: $DATABASE_USER"
+        echo ""
+        echo "⚠️  This will DROP and recreate the database '$DATABASE_DB'"
+        read -p "Continue? (y/N): " CONFIRM
+
+        if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+            echo "❌ Restore cancelled"
+            exit 1
+        fi
+
+        # Drop and recreate database, then restore
+        echo "🔄 Dropping database..."
+        PGPASSWORD="${DATABASE_PASSWORD:-}" dropdb \
+            -h "$DATABASE_HOST" \
+            -p "$DATABASE_PORT" \
+            -U "$DATABASE_USER" \
+            --if-exists \
+            "$DATABASE_DB"
+
+        echo "🔄 Creating database..."
+        PGPASSWORD="${DATABASE_PASSWORD:-}" createdb \
+            -h "$DATABASE_HOST" \
+            -p "$DATABASE_PORT" \
+            -U "$DATABASE_USER" \
+            "$DATABASE_DB"
+
+        echo "🔄 Restoring data..."
+        PGPASSWORD="${DATABASE_PASSWORD:-}" psql \
+            -h "$DATABASE_HOST" \
+            -p "$DATABASE_PORT" \
+            -U "$DATABASE_USER" \
+            -d "$DATABASE_DB" \
+            -f "$DUMP_FILE"
+    fi
+
+    if [ $? -eq 0 ]; then
+        echo "✅ Database restored successfully"
+    else
+        echo "❌ Error: Database restore failed"
+        exit 1
+    fi
+    exit 0
+fi
+
+# Handle dump_env command
+if [ "$1" = "dump_env" ]; then
+    echo "📄 Dumping .env file..."
+
+    # Set default
+    ENVS_DIR="$HOME/workspace/envs"
+
+    # Load configuration
+    REBIDE_CONF="$PWD/.rebide.conf"
+    if [ -f "$REBIDE_CONF" ]; then
+        source "$REBIDE_CONF"
+    fi
+
+    # Check if .env exists
+    if [ ! -f "$PWD/.env" ]; then
+        echo "❌ Error: .env file not found"
+        exit 1
+    fi
+
+    # Create envs directory if it doesn't exist
+    mkdir -p "$ENVS_DIR"
+
+    # Generate filename with folder name and timestamp
+    PROJECT_NAME=$(basename "$PWD")
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    ENV_FILE="$ENVS_DIR/env-${PROJECT_NAME}-${TIMESTAMP}"
+
+    echo "📁 Project: $PROJECT_NAME"
+    echo "📁 Output: $ENV_FILE"
+
+    # Copy .env file
+    cp "$PWD/.env" "$ENV_FILE"
+
+    if [ $? -eq 0 ]; then
+        ENV_SIZE=$(du -h "$ENV_FILE" | cut -f1)
+        echo "✅ .env file saved successfully ($ENV_SIZE)"
+    else
+        echo "❌ Error: Failed to save .env file"
+        exit 1
+    fi
+    exit 0
+fi
+
+# Handle restore_env command
+if [ "$1" = "restore_env" ]; then
+    echo "📄 Restoring .env file..."
+
+    # Set default
+    ENVS_DIR="$HOME/workspace/envs"
+
+    # Load configuration
+    REBIDE_CONF="$PWD/.rebide.conf"
+    if [ -f "$REBIDE_CONF" ]; then
+        source "$REBIDE_CONF"
+    fi
+
+    PROJECT_NAME=$(basename "$PWD")
+    ENV_FILE="$2"
+
+    # If no file specified, list available env files and let user choose
+    if [ -z "$ENV_FILE" ]; then
+        if [ ! -d "$ENVS_DIR" ]; then
+            echo "❌ Error: Envs directory not found: $ENVS_DIR"
+            exit 1
+        fi
+
+        # Find env files for this project
+        shopt -s nullglob
+        ENV_FILES=("$ENVS_DIR"/env-${PROJECT_NAME}-*)
+        shopt -u nullglob
+
+        if [ ${#ENV_FILES[@]} -eq 0 ]; then
+            echo "❌ Error: No env files found for '$PROJECT_NAME' in $ENVS_DIR"
+            exit 1
+        fi
+
+        echo "📋 Available env files for '$PROJECT_NAME':"
+        echo ""
+
+        # List env files with numbers
+        i=1
+        declare -a ENVS
+        for env in "${ENV_FILES[@]}"; do
+            if [ -f "$env" ]; then
+                ENV_SIZE=$(du -h "$env" | cut -f1)
+                ENV_NAME=$(basename "$env")
+                echo "  $i) $ENV_NAME ($ENV_SIZE)"
+                ENVS[$i]="$env"
+                ((i++))
+            fi
+        done
+
+        echo ""
+        read -p "Select env file to restore (1-$((i-1))): " SELECTION
+
+        if [[ ! "$SELECTION" =~ ^[0-9]+$ ]] || [ "$SELECTION" -lt 1 ] || [ "$SELECTION" -ge "$i" ]; then
+            echo "❌ Error: Invalid selection"
+            exit 1
+        fi
+
+        ENV_FILE="${ENVS[$SELECTION]}"
+    fi
+
+    # Validate env file exists
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "❌ Error: Env file not found: $ENV_FILE"
+        exit 1
+    fi
+
+    echo "📁 Restoring from: $ENV_FILE"
+
+    # Warn if .env already exists
+    if [ -f "$PWD/.env" ]; then
+        echo "⚠️  This will overwrite the existing .env file"
+        read -p "Continue? (y/N): " CONFIRM
+
+        if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+            echo "❌ Restore cancelled"
+            exit 1
+        fi
+    fi
+
+    # Copy env file
+    cp "$ENV_FILE" "$PWD/.env"
+
+    if [ $? -eq 0 ]; then
+        echo "✅ .env file restored successfully"
+    else
+        echo "❌ Error: Failed to restore .env file"
+        exit 1
+    fi
     exit 0
 fi
 
