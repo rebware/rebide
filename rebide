@@ -622,13 +622,28 @@ command_exists() {
 
 # Check required commands
 echo "📋 Checking dependencies..."
-for cmd in tmux docker subl google-chrome; do
+for cmd in tmux docker; do
     if ! command_exists "$cmd"; then
         echo "❌ Error: $cmd is not installed or not in PATH"
         echo "Please install $cmd and try again"
         exit 1
     fi
 done
+
+# Check optional commands
+if ! command_exists "subl"; then
+    echo "⚠️  subl not found, Sublime Text integration disabled"
+    SUBL_AVAILABLE=false
+else
+    SUBL_AVAILABLE=true
+fi
+
+if ! command_exists "google-chrome"; then
+    echo "⚠️  google-chrome not found, Chrome integration disabled"
+    CHROME_AVAILABLE=false
+else
+    CHROME_AVAILABLE=true
+fi
 
 # Set defaults
 CHROME_PROFILE=""
@@ -735,12 +750,14 @@ tmux send-keys -t "$PROJECT_NAME":main.1 'clear' Enter
 tmux send-keys -t "$PROJECT_NAME":main.2 'echo "Starting Rails development server..."' Enter
 tmux send-keys -t "$PROJECT_NAME":main.2 "RAILS_PORT=$RAILS_PORT $RUN_INIT" Enter
 
-# Start Sublime Text
-echo "📝 Opening Sublime Text..."
-subl "$PWD" &
+# Start Sublime Text (if available)
+if [ "$SUBL_AVAILABLE" = true ]; then
+    echo "📝 Opening Sublime Text..."
+    subl "$PWD" &
+fi
 
-# Start Chrome with custom profile (only if .chrome-profile exists)
-if [ -n "$CHROME_PROFILE" ]; then
+# Start Chrome with custom profile (only if available and profile configured)
+if [ "$CHROME_AVAILABLE" = true ] && [ -n "$CHROME_PROFILE" ]; then
     echo "🌐 Opening Chrome with profile: $CHROME_PROFILE at $CHROME_URL..."
     google-chrome \
         --profile-directory="$CHROME_PROFILE" \
