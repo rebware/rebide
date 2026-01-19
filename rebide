@@ -22,10 +22,13 @@
 #
 # Environment file settings (for dump_env/restore_env commands):
 #   ENVS_DIR="~/workspace/envs"    # Directory for .env backups (default: ~/workspace/envs)
+#
+# Python venv settings:
+#   VENV_DIR=""                     # Path to venv directory (auto-detects .venv, venv, env if not set)
 
 # Version information (date updated automatically by pre-commit hook)
-VERSION="1.3"
-VERSION_DATE="2025-12-15"
+VERSION="1.4"
+VERSION_DATE="2026-01-19"
 
 set -e
 
@@ -37,6 +40,31 @@ find_docker_compose() {
         echo "$PWD/.."
     else
         echo ""
+    fi
+}
+
+# Function to find venv directory
+find_venv() {
+    local venv_dir="$1"
+    if [ -n "$venv_dir" ] && [ -f "$venv_dir/bin/activate" ]; then
+        echo "$venv_dir"
+    elif [ -f "$PWD/.venv/bin/activate" ]; then
+        echo "$PWD/.venv"
+    elif [ -f "$PWD/venv/bin/activate" ]; then
+        echo "$PWD/venv"
+    elif [ -f "$PWD/env/bin/activate" ]; then
+        echo "$PWD/env"
+    else
+        echo ""
+    fi
+}
+
+# Function to activate venv
+activate_venv() {
+    local venv_path="$1"
+    if [ -n "$venv_path" ]; then
+        echo "🐍 Activating Python venv: $venv_path"
+        source "$venv_path/bin/activate"
     fi
 }
 
@@ -88,7 +116,10 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "  Environment file settings (for dump_env/restore_env):"
     echo "    ENVS_DIR=\"~/workspace/envs\"             # Directory for .env backups (default: ~/workspace/envs)"
     echo ""
-    echo "Examples:"
+    echo "  Python venv settings:"
+    echo "    VENV_DIR=\"\"                              # Path to venv (auto-detects .venv, venv, env if not set)"
+    echo ""
+    echo "Examples:
     echo "  rebide                    # Start full environment"
     echo "  rebide serve              # Start server only"
     echo "  rebide close              # Stop environment"
@@ -514,6 +545,7 @@ if [ "$1" = "serve" ]; then
     RAILS_PORT="3000"
     CHROME_URL=""
     DOCKER_COMPOSE_FILE="docker-compose.yml"
+    VENV_DIR=""
 
     # Load configuration
     REBIDE_CONF="$PWD/.rebide.conf"
@@ -525,6 +557,12 @@ if [ "$1" = "serve" ]; then
     # Set CHROME_URL default if not specified
     if [ -z "$CHROME_URL" ]; then
         CHROME_URL="http://localhost:$RAILS_PORT"
+    fi
+
+    # Detect and activate Python venv
+    VENV_PATH=$(find_venv "$VENV_DIR")
+    if [ -n "$VENV_PATH" ]; then
+        activate_venv "$VENV_PATH"
     fi
 
     # Start Docker services if configured
@@ -636,6 +674,7 @@ RAILS_PORT="3000"
 CHROME_URL=""
 RUN_INIT="bin/dev"
 DOCKER_COMPOSE_FILE="docker-compose.yml"
+VENV_DIR=""
 
 # Read configuration from .rebide.conf file
 REBIDE_CONF="$PWD/.rebide.conf"
@@ -665,6 +704,14 @@ if [ -n "$CHROME_PROFILE" ]; then
     echo "🌐 Chrome URL: $CHROME_URL"
 else
     echo "📁 Chrome: disabled (no CHROME_PROFILE set)"
+fi
+
+# Detect and activate Python venv
+VENV_PATH=$(find_venv "$VENV_DIR")
+if [ -n "$VENV_PATH" ]; then
+    activate_venv "$VENV_PATH"
+else
+    echo "🐍 Python venv: not found"
 fi
 
 # Start Docker services only if DOCKER_COMPOSE_FILE is set and not empty
