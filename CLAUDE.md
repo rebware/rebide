@@ -36,6 +36,7 @@ Create a `.rebide.conf` file in your Rails project root to customize the develop
 - **CHROME_URL**: Custom URL for Chrome (default: http://localhost:$RAILS_PORT)
 - **RUN_INIT**: Command to start the local server (default: bin/dev)
 - **DOCKER_COMPOSE_FILE**: Docker compose file name (default: docker-compose.yml)
+- **CONFS_DIR**: Directory for .rebide.conf backups (default: ~/workspace/confs)
 
 Example `.rebide.conf`:
 ```bash
