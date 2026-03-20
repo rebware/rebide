@@ -37,6 +37,7 @@ Create a `.rebide.conf` file in your Rails project root to customize the develop
 - **RUN_INIT**: Command to start the local server (default: bin/dev)
 - **DOCKER_COMPOSE_FILE**: Docker compose file name (default: docker-compose.yml)
 - **CONFS_DIR**: Directory for .rebide.conf backups (default: ~/workspace/confs)
+- **CLAUDE_DIR**: Directory for .claude/ backups (default: ~/workspace/claude-backups)
 
 Example `.rebide.conf`:
 ```bash
